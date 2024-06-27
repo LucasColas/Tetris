@@ -44,11 +44,19 @@ class Game():
         self.counter += 1
         
         
-        if self.counter >= self.fps:
+        if self.counter >= 0.8*self.fps:
             self.counter = 0
             self.piece_position = (self.piece_position[0], self.piece_position[1] + self.cell_size)
-            
+        
+        self.check_piece_position()
         pygame.display.flip()
+
+    def check_piece_position(self):
+        if self.piece_position[0] < 0:
+            self.piece_position = (0, self.piece_position[1])
+
+        if self.piece_position[0] > self.screen.get_width() - self.current_piece.get_width():
+            self.piece_position = (self.screen.get_width() - self.current_piece.get_width(), self.piece_position[1])
 
     
 
@@ -63,18 +71,15 @@ class Game():
                     if event.key == pygame.K_UP:
                         self.current_piece.rotate()
 
+
                     if event.key == pygame.K_LEFT:
-                        if self.piece_position[0] > self.cell_size:
+                        if self.piece_position[0] > 0:
                             self.piece_position = (self.piece_position[0] - self.cell_size, self.piece_position[1])
                         
                     if event.key == pygame.K_RIGHT:
-                        print(self.piece_position[0], self.screen.get_width() - self.current_piece.get_width(), self.current_piece.get_width())
-                        print(self.cell_size)
+                        
                         if self.piece_position[0] < self.screen.get_width() - self.current_piece.get_width():
-                            self.piece_position = (self.piece_position[0] + self.cell_size, self.piece_position[1])
-
-
-                    
+                            self.piece_position = (self.piece_position[0] + self.cell_size, self.piece_position[1])    
 
             # Update
             # Draw

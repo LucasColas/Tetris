@@ -20,9 +20,8 @@ class Piece(pygame.Surface):
                                      pygame.Rect(x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size))
 
     def rotate(self):
-        # Rotate the shape 90 degrees clockwise
+        # Rotate the shape 90 degrees clockwise and redraw the shape with a new surface
         self.shape = [list(row) for row in zip(*self.shape[::-1])]
-        #new_size = (self.cell_size * len(self.shape[0]), self.cell_size * len(self.shape))
         self.__init__(self.shape, self.color, self.bg_color, self.cell_size)
         self._draw_shape()
 
