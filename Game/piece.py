@@ -22,6 +22,8 @@ class Piece(pygame.Surface):
     def rotate(self):
         # Rotate the shape 90 degrees clockwise
         self.shape = [list(row) for row in zip(*self.shape[::-1])]
+        #new_size = (self.cell_size * len(self.shape[0]), self.cell_size * len(self.shape))
+        self.__init__(self.shape, self.color, self.bg_color, self.cell_size)
         self._draw_shape()
 
     def draw(self, position):

@@ -3,7 +3,7 @@ from Game.piece import Piece
 import random
 
 class Game():
-    def __init__(self, cell_size=10, fps=60):
+    def __init__(self, cell_size=25, fps=60):
         self.screen = pygame.display.get_surface()
         self.cell_size = cell_size
         self.fps = fps
@@ -34,7 +34,7 @@ class Game():
             "purple": (255, 0, 255),
         }
 
-        self.current_piece = Piece(shape=self.shapes[random.choice(list(self.shapes.keys()))], color=self.colors[random.choice(list(self.colors.keys()))], bg_color=(0, 0, 0), cell_size=self.cell_size)
+        self.current_piece = Piece(shape=self.shapes['Z'], color=self.colors[random.choice(list(self.colors.keys()))], bg_color=(0, 0, 0), cell_size=self.cell_size)
         self.piece_position = (0, 0)
         self.counter = 0
 
@@ -62,6 +62,18 @@ class Game():
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_UP:
                         self.current_piece.rotate()
+
+                    if event.key == pygame.K_LEFT:
+                        if self.piece_position[0] > self.cell_size:
+                            self.piece_position = (self.piece_position[0] - self.cell_size, self.piece_position[1])
+                        
+                    if event.key == pygame.K_RIGHT:
+                        print(self.piece_position[0], self.screen.get_width() - self.current_piece.get_width(), self.current_piece.get_width())
+                        print(self.cell_size)
+                        if self.piece_position[0] < self.screen.get_width() - self.current_piece.get_width():
+                            self.piece_position = (self.piece_position[0] + self.cell_size, self.piece_position[1])
+
+
                     
 
             # Update
