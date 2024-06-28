@@ -9,6 +9,7 @@ class Game():
         self.fps = fps
         self.clock = pygame.time.Clock()
         self.running = True
+        self.pieces = []
         
         self.shapes = {
             'I': [[1, 1, 1, 1]],
@@ -40,16 +41,24 @@ class Game():
 
     def update(self):
         #self.input()
-        self.current_piece.draw(self.piece_position)
-        self.counter += 1
         
+        self.counter += 1
+        self.draw_pieces()
         
         if self.counter >= 0.8*self.fps:
             self.counter = 0
             self.piece_position = (self.piece_position[0], self.piece_position[1] + self.cell_size)
+
+        self.check_collision()
+        self.current_piece.draw(self.piece_position)
+
         
         self.check_piece_position()
         pygame.display.flip()
+
+    def draw_pieces(self):
+        for piece, position in self.pieces:
+            piece.draw(position)
 
     def check_piece_position(self):
         if self.piece_position[0] < 0:
@@ -58,7 +67,24 @@ class Game():
         if self.piece_position[0] > self.screen.get_width() - self.current_piece.get_width():
             self.piece_position = (self.screen.get_width() - self.current_piece.get_width(), self.piece_position[1])
 
-    
+    def check_collision(self):
+        # Check if the piece is colliding with the board or another piece
+        collision = False
+        if self.piece_position[1] + self.current_piece.get_height() >= self.screen.get_height():
+            collision = True
+
+        if collision:
+            # Store the current piece on the board
+            self.pieces.append((self.current_piece, self.piece_position))
+
+            # Spawn a new piece
+            self.current_piece = Piece(shape=self.shapes[random.choice(list(self.shapes.keys()))], 
+                                    color=self.colors[random.choice(list(self.colors.keys()))], 
+                                    bg_color=(0, 0, 0), 
+                                    cell_size=self.cell_size)
+            self.piece_position = (self.screen.get_width() // 2 - self.cell_size, 0)
+            
+
 
     def run(self):
         # Game loop
@@ -66,6 +92,10 @@ class Game():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_DOWN:
+                        self.piece_position = (self.piece_position[0], self.piece_position[1] + self.cell_size)
 
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_UP:
@@ -81,8 +111,6 @@ class Game():
                         if self.piece_position[0] < self.screen.get_width() - self.current_piece.get_width():
                             self.piece_position = (self.piece_position[0] + self.cell_size, self.piece_position[1])    
 
-            # Update
-            # Draw
             self.screen.fill((0, 0, 0))
 
             # Draw / render
