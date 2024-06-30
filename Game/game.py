@@ -50,7 +50,14 @@ class Game():
             self.piece_position = (self.piece_position[0], self.piece_position[1] + self.cell_size)
 
         self.check_collision()
-        self.current_piece.draw(self.piece_position)
+        #self.current_piece.draw(self.piece_position)
+        for y, row in enumerate(self.current_piece.shape):
+            for x, cell in enumerate(row):
+                if cell:
+                    global_x = self.piece_position[0] + x * self.cell_size
+                    global_y = self.piece_position[1] + y * self.cell_size
+                    pygame.draw.rect(self.screen, self.current_piece.color, 
+                                    pygame.Rect(global_x, global_y, self.cell_size, self.cell_size))
 
         
         self.check_piece_position()
