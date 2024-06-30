@@ -58,7 +58,13 @@ class Game():
 
     def draw_pieces(self):
         for piece, position in self.pieces:
-            piece.draw(position)
+            for y, row in enumerate(piece.shape):
+                for x, cell in enumerate(row):
+                    if cell:
+                        global_x = position[0] + x * self.cell_size
+                        global_y = position[1] + y * self.cell_size
+                        pygame.draw.rect(self.screen, piece.color, 
+                                        pygame.Rect(global_x, global_y, self.cell_size, self.cell_size))
 
     def check_piece_position(self):
         if self.piece_position[0] < 0:
@@ -72,6 +78,30 @@ class Game():
         collision = False
         if self.piece_position[1] + self.current_piece.get_height() >= self.screen.get_height():
             collision = True
+        print("self piece position : ", self.piece_position)
+        for y, row in enumerate(self.current_piece.shape):
+            for x, cell in enumerate(row):
+                if cell:
+                    global_x = self.piece_position[0] + x * self.cell_size
+                    global_y = self.piece_position[1] + y * self.cell_size
+
+                    # Check collision with other pieces
+                    for other_piece, other_position in self.pieces:
+                        for oy, o_row in enumerate(other_piece.shape):
+                            for ox, o_cell in enumerate(o_row):
+                                if o_cell:
+                                    other_x = other_position[0] + ox * self.cell_size
+                                    other_y = other_position[1] + oy * self.cell_size
+                                    print(global_x, global_y, other_x, other_y)
+                                    if (global_x == other_x) and (global_y + self.cell_size == other_y):
+                                        collision = True
+                                        break
+                            if collision:
+                                break
+                    if collision:
+                        break
+            if collision:
+                break
 
         if collision:
             # Store the current piece on the board
@@ -89,14 +119,14 @@ class Game():
     def run(self):
         # Game loop
         while self.running:
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_DOWN]:
+                self.piece_position = (self.piece_position[0], self.piece_position[1] + self.cell_size)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
 
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_DOWN:
-                        self.piece_position = (self.piece_position[0], self.piece_position[1] + self.cell_size)
-
+                
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_UP:
                         self.current_piece.rotate()

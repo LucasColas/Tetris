@@ -11,7 +11,7 @@ class Piece(pygame.Surface):
         self.surface = pygame.display.get_surface()
 
     def _draw_shape(self):
-        self.fill(self.bg_color) 
+        #self.fill(self.bg_color) 
        
         for y, row in enumerate(self.shape):
             for x, cell in enumerate(row):
