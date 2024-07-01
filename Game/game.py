@@ -12,6 +12,8 @@ class Game:
         self.running = True
         self.pieces = []
         self.score = 0
+        self.line_score = 300
+        self.is_game_over = False
 
         self.shapes = {
             "I": [[1, 1, 1, 1]],
@@ -37,7 +39,7 @@ class Game:
             bg_color=(0, 0, 0),
             cell_size=self.cell_size,
         )
-        self.piece_position = (0, 0)
+        self.piece_position = (self.screen.get_width() // 2 - self.cell_size, -self.current_piece.get_height())
         self.counter = 0
 
     def update(self):
@@ -46,7 +48,7 @@ class Game:
         self.counter += 1
         self.draw_pieces()
 
-        if self.counter >= 0.8 * self.fps:
+        if self.counter >= 0.8 * self.fps and not self.is_game_over:
             self.counter = 0
             self.piece_position = (
                 self.piece_position[0],
@@ -67,7 +69,19 @@ class Game:
                     )
 
         self.check_piece_position()
+        self.draw_score()
+        self.game_over()
+        
+        if self.is_game_over:
+            self.draw_game_over()
+            
+            
         pygame.display.flip()
+    def draw_game_over(self):
+        font = pygame.font.Font(None, 36)
+        text = font.render("Game Over", True, (255, 255, 255))
+        text_rect = text.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
+        self.screen.blit(text, text_rect)
 
     def draw_pieces(self):
         for piece, position in self.pieces:
@@ -83,6 +97,13 @@ class Game:
                                 global_x, global_y, self.cell_size, self.cell_size
                             ),
                         )
+
+    def draw_score(self):
+        font = pygame.font.Font(None, 36)
+        text = font.render(f"Score: {self.score}", True, (255, 255, 255))
+        # center the text
+        text_rect = text.get_rect(center=(self.screen.get_width() // 2, 50))
+        self.screen.blit(text, text_rect)
 
     def check_piece_position(self):
         if self.piece_position[0] < 0:
@@ -121,7 +142,7 @@ class Game:
                 rows_to_clear.add(y)
 
         if rows_to_clear:
-            self.score += len(rows_to_clear) * 300
+            self.score += self.line_score * len(rows_to_clear)
             new_pieces = []
 
             for piece, position in self.pieces:
@@ -191,18 +212,36 @@ class Game:
 
             # Spawn a new piece
             self.current_piece = Piece(
-                shape=self.shapes["I"],
+                shape=self.shapes[random.choice(list(self.shapes.keys()))],
                 color=self.colors[random.choice(list(self.colors.keys()))],
                 bg_color=(0, 0, 0),
                 cell_size=self.cell_size,
             )
-            self.piece_position = (self.screen.get_width() // 2 - self.cell_size, 0)
+            self.piece_position = (self.screen.get_width() // 2 - self.cell_size, -self.current_piece.get_height())
+
+    def game_over(self):
+        # Check if the game is over
+        for _, position in self.pieces:
+            if position[1] <= 0:
+                self.is_game_over = True
+
+    def restart_game(self):
+        self.pieces = []
+        self.score = 0
+        self.is_game_over = False
+        self.current_piece = Piece(
+            shape=self.shapes[random.choice(list(self.shapes.keys()))],
+            color=self.colors[random.choice(list(self.colors.keys()))],
+            bg_color=(0, 0, 0),
+            cell_size=self.cell_size,
+        )
+        self.piece_position = (self.screen.get_width() // 2 - self.cell_size, -self.current_piece.get_height())
 
     def run(self):
         # Game loop
         while self.running:
             keys = pygame.key.get_pressed()
-            if keys[pygame.K_DOWN]:
+            if keys[pygame.K_DOWN] and not self.is_game_over:
                 self.piece_position = (
                     self.piece_position[0],
                     self.piece_position[1] + self.cell_size,
@@ -210,6 +249,10 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE and self.is_game_over:
+                        self.restart_game()
 
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_UP:
