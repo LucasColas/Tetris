@@ -1,6 +1,8 @@
 import pygame
 from Game.game import Game
+
 pygame.init()
+
 
 def main(Width=450, Height=700, Title="Tetris"):
     # Initialize the game
@@ -12,6 +14,3 @@ def main(Width=450, Height=700, Title="Tetris"):
 
 if __name__ == "__main__":
     main()
-    
-
-    
