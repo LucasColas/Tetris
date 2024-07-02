@@ -3,21 +3,18 @@ from Game.piece import Piece
 import random
 
 
-import pygame
-from Game.piece import Piece
-import random
-
 class Game:
-    def __init__(self, cell_size=25, fps=60):
+    def __init__(self, cell_size=25, fps=60, bg_color=(0, 0, 0)):
         self.screen = pygame.display.get_surface()
         self.cell_size = cell_size
         self.fps = fps
         self.clock = pygame.time.Clock()
         self.running = True
-        self.pieces = []
         self.score = 0
         self.line_score = 300
         self.is_game_over = False
+        self.counter = 0
+        self.bg_color = bg_color
 
         self.shapes = {
             "I": [[1, 1, 1, 1]],
@@ -37,57 +34,39 @@ class Game:
             "purple": (255, 0, 255),
         }
 
-        self.current_piece = Piece(
-            shape=self.shapes["I"],
-            color=self.colors[random.choice(list(self.colors.keys()))],
-            bg_color=(0, 0, 0),
-            cell_size=self.cell_size,
-        )
-        self.piece_position = (self.screen.get_width() // 2 - self.cell_size, -self.current_piece.get_height())
-        self.counter = 0
-
-        # Grid representation for the board
         self.grid_width = self.screen.get_width() // self.cell_size
         self.grid_height = self.screen.get_height() // self.cell_size
         self.grid = [[None for _ in range(self.grid_width)] for _ in range(self.grid_height)]
 
+        self.spawn_piece()
+
+    def spawn_piece(self):
+        self.current_piece = Piece(
+            shape=self.shapes[random.choice(list(self.shapes.keys()))],
+            color=self.colors[random.choice(list(self.colors.keys()))],
+            bg_color=self.bg_color,
+            cell_size=self.cell_size,
+        )
+        self.piece_position = (self.grid_width // 2 - len(self.current_piece.shape[0]) // 2, 0)
+
     def update(self):
+        self.screen.fill(self.bg_color)
         self.counter += 1
-        self.draw_pieces()
 
         if self.counter >= 0.8 * self.fps and not self.is_game_over:
+            self.move_piece(0, 1)
             self.counter = 0
-            self.piece_position = (self.piece_position[0], self.piece_position[1] + self.cell_size)
 
-        self.check_collision()
-
-        for y, row in enumerate(self.current_piece.shape):
-            for x, cell in enumerate(row):
-                if cell:
-                    global_x = self.piece_position[0] + x * self.cell_size
-                    global_y = self.piece_position[1] + y * self.cell_size
-                    pygame.draw.rect(
-                        self.screen,
-                        self.current_piece.color,
-                        pygame.Rect(global_x, global_y, self.cell_size, self.cell_size),
-                    )
-
-        self.check_piece_position()
+        self.draw_grid()
+        self.draw_piece()
         self.draw_score()
-        self.game_over()
-        
+
         if self.is_game_over:
             self.draw_game_over()
-            
+
         pygame.display.flip()
 
-    def draw_game_over(self):
-        font = pygame.font.Font(None, 36)
-        text = font.render("Game Over", True, (255, 255, 255))
-        text_rect = text.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
-        self.screen.blit(text, text_rect)
-
-    def draw_pieces(self):
+    def draw_grid(self):
         for y in range(self.grid_height):
             for x in range(self.grid_width):
                 if self.grid[y][x]:
@@ -95,9 +74,85 @@ class Game:
                         self.screen,
                         self.grid[y][x],
                         pygame.Rect(
-                            x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size
+                            x * self.cell_size,
+                            y * self.cell_size,
+                            self.cell_size,
+                            self.cell_size,
                         ),
                     )
+
+    def draw_piece(self):
+        for y, row in enumerate(self.current_piece.shape):
+            for x, cell in enumerate(row):
+                if cell:
+                    global_x = self.piece_position[0] + x
+                    global_y = self.piece_position[1] + y
+                    pygame.draw.rect(
+                        self.screen,
+                        self.current_piece.color,
+                        pygame.Rect(
+                            global_x * self.cell_size,
+                            global_y * self.cell_size,
+                            self.cell_size,
+                            self.cell_size,
+                        ),
+                    )
+
+    def move_piece(self, dx, dy):
+        new_x = self.piece_position[0] + dx
+        new_y = self.piece_position[1] + dy
+
+        if self.valid_move(new_x, new_y):
+            self.piece_position = (new_x, new_y)
+        else:
+            # the piece has landed on the bottom of the grid or on another block. In this case, it should be locked in place.
+            if dy > 0:
+                self.lock_piece()
+
+    def valid_move(self, new_x, new_y):
+        for y, row in enumerate(self.current_piece.shape):
+            for x, cell in enumerate(row):
+                if cell:
+                    grid_x = new_x + x
+                    grid_y = new_y + y
+                    if (
+                        grid_x < 0
+                        or grid_x >= self.grid_width
+                        or grid_y >= self.grid_height
+                        or (grid_y >= 0 and self.grid[grid_y][grid_x])
+                    ):
+                        #print("Invalid move")
+                        return False
+        return True
+
+    def lock_piece(self):
+        for y, row in enumerate(self.current_piece.shape):
+            for x, cell in enumerate(row):
+                if cell:
+                    grid_x = self.piece_position[0] + x
+                    grid_y = self.piece_position[1] + y
+                    if grid_y >= 0:
+                        self.grid[grid_y][grid_x] = self.current_piece.color
+
+        self.clear_complete_lines()
+        self.spawn_piece()
+        if not self.valid_move(self.piece_position[0], self.piece_position[1]):
+            self.is_game_over = True
+
+    def clear_complete_lines(self):
+        new_grid = [[None for _ in range(self.grid_width)] for _ in range(self.grid_height)]
+        new_row_index = self.grid_height - 1
+        lines_cleared = 0
+
+        for row_index in range(self.grid_height - 1, -1, -1):
+            if None in self.grid[row_index]:
+                new_grid[new_row_index] = self.grid[row_index]
+                new_row_index -= 1
+            else:
+                lines_cleared += 1
+
+        self.grid = new_grid
+        self.score += self.line_score * lines_cleared
 
     def draw_score(self):
         font = pygame.font.Font(None, 36)
@@ -105,160 +160,46 @@ class Game:
         text_rect = text.get_rect(center=(self.screen.get_width() // 2, 50))
         self.screen.blit(text, text_rect)
 
-    def check_piece_position(self):
-        if self.piece_position[0] < 0:
-            self.piece_position = (0, self.piece_position[1])
-
-        if self.piece_position[0] > self.screen.get_width() - self.current_piece.get_width():
-            self.piece_position = (
-                self.screen.get_width() - self.current_piece.get_width(),
-                self.piece_position[1],
-            )
-
-    def clear_complete_lines(self):
-        rows_to_clear = []
-        for y in range(self.grid_height):
-            if all(self.grid[y]):
-                rows_to_clear.append(y)
-
-        if rows_to_clear:
-            self.score += self.line_score * len(rows_to_clear)
-
-            # Clear rows and shift the grid down
-            for row in rows_to_clear:
-                del self.grid[row]
-                self.grid.insert(0, [None for _ in range(self.grid_width)])
-            
-            # Update pieces' positions according to the new grid
-            new_pieces = []
-            for piece, position in self.pieces:
-                new_position = position
-                new_shape = piece.shape
-
-                # Adjust position based on cleared rows
-                for clear_y in rows_to_clear:
-                    if position[1] // self.cell_size < clear_y:
-                        new_position = (position[0], position[1] + self.cell_size)
-                
-                new_pieces.append((piece, new_position))
-            self.pieces = new_pieces
-
-    def check_collision(self):
-        collision = False
-        if self.piece_position[1] + self.current_piece.get_height() >= self.screen.get_height():
-            collision = True
-
-        for y, row in enumerate(self.current_piece.shape):
-            for x, cell in enumerate(row):
-                if cell:
-                    global_x = self.piece_position[0] + x * self.cell_size
-                    global_y = self.piece_position[1] + y * self.cell_size
-
-                    for other_piece, other_position in self.pieces:
-                        for oy, o_row in enumerate(other_piece.shape):
-                            for ox, o_cell in enumerate(o_row):
-                                if o_cell:
-                                    other_x = other_position[0] + ox * self.cell_size
-                                    other_y = other_position[1] + oy * self.cell_size
-
-                                    if (global_x == other_x) and (global_y + self.cell_size == other_y):
-                                        collision = True
-                                        break
-                            if collision:
-                                break
-                    if collision:
-                        break
-            if collision:
-                break
-
-        if collision:
-            self.pieces.append((self.current_piece, self.piece_position))
-            
-            for y, row in enumerate(self.current_piece.shape):
-                for x, cell in enumerate(row):
-                    if cell:
-                        grid_x = (self.piece_position[0] // self.cell_size) + x
-                        grid_y = (self.piece_position[1] // self.cell_size) + y
-                        if 0 <= grid_x < self.grid_width and 0 <= grid_y < self.grid_height:
-                            self.grid[grid_y][grid_x] = self.current_piece.color
-
-            self.clear_complete_lines()
-
-            self.score += len(self.current_piece.shape) * 10
-            self.current_piece = Piece(
-                shape=self.shapes[random.choice(list(self.shapes.keys()))],
-                color=self.colors[random.choice(list(self.colors.keys()))],
-                bg_color=(0, 0, 0),
-                cell_size=self.cell_size,
-            )
-            self.piece_position = (self.screen.get_width() // 2 - self.cell_size, -self.current_piece.get_height())
-
-    def game_over(self):
-        for _, position in self.pieces:
-            if position[1] <= 0:
-                self.is_game_over = True
+    def draw_game_over(self):
+        font = pygame.font.Font(None, 36)
+        text = font.render("Game Over", True, (255, 255, 255))
+        text_rect = text.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
+        self.screen.blit(text, text_rect)
 
     def restart_game(self):
-        self.pieces = []
+        self.grid = [[None for _ in range(self.grid_width)] for _ in range(self.grid_height)]
         self.score = 0
         self.is_game_over = False
-        self.grid = [[None for _ in range(self.grid_width)] for _ in range(self.grid_height)]
-        self.current_piece = Piece(
-            shape=self.shapes[random.choice(list(self.shapes.keys()))],
-            color=self.colors[random.choice(list(self.colors.keys()))],
-            bg_color=(0, 0, 0),
-            cell_size=self.cell_size,
-        )
-        self.piece_position = (self.screen.get_width() // 2 - self.cell_size, -self.current_piece.get_height())
-        self.counter = 0
-
+        self.spawn_piece()
 
     def run(self):
-        # Game loop
         while self.running:
             keys = pygame.key.get_pressed()
             if keys[pygame.K_DOWN] and not self.is_game_over:
-                self.piece_position = (
-                    self.piece_position[0],
-                    self.piece_position[1] + self.cell_size,
-                )
+                print("down")
+                self.move_piece(0, 1)
                 self.score += 1
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
-
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_SPACE and self.is_game_over:
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        self.move_piece(-1, 0)
+                    elif event.key == pygame.K_RIGHT:
+                        self.move_piece(1, 0)
+                    
+                    elif event.key == pygame.K_UP:
+                        self.current_piece.rotate()
+                        if not self.valid_move(self.piece_position[0], self.piece_position[1]):
+                            # Undo rotation if it's not a valid move
+                            for _ in range(3):  # Rotate three more times to revert
+                                self.current_piece.rotate()
+                    elif event.key == pygame.K_SPACE and self.is_game_over:
                         self.restart_game()
 
-                if event.type == pygame.KEYUP:
-                    if event.key == pygame.K_UP:
-                        self.current_piece.rotate()
-
-                    if event.key == pygame.K_LEFT:
-                        if self.piece_position[0] > 0:
-                            self.piece_position = (
-                                self.piece_position[0] - self.cell_size,
-                                self.piece_position[1],
-                            )
-
-                    if event.key == pygame.K_RIGHT:
-
-                        if (
-                            self.piece_position[0]
-                            < self.screen.get_width() - self.current_piece.get_width()
-                        ):
-                            self.piece_position = (
-                                self.piece_position[0] + self.cell_size,
-                                self.piece_position[1],
-                            )
-
             self.screen.fill((0, 0, 0))
-
-            # Draw / render
             self.update()
-
-            # Cap the frame rate
             self.clock.tick(self.fps)
 
         pygame.quit()
