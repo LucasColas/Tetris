@@ -121,7 +121,7 @@ class Game:
                         or grid_y >= self.grid_height
                         or (grid_y >= 0 and self.grid[grid_y][grid_x])
                     ):
-                        #print("Invalid move")
+                        
                         return False
         return True
 
@@ -176,7 +176,7 @@ class Game:
         while self.running:
             keys = pygame.key.get_pressed()
             if keys[pygame.K_DOWN] and not self.is_game_over:
-                print("down")
+                
                 self.move_piece(0, 1)
                 self.score += 1
 
